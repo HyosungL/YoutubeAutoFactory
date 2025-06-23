@@ -1,0 +1,25 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.cache
+*.pdb
+*.obj
+*.dll
+*.log
+*.nupkg
+*.ide
+*.vsix
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.g.cs
+*.GlobalUsings.g.cs
+
+# Build output
+/bin/
+/obj/
+/TestResults/
+/Release/
+/Debug/
