@@ -1,52 +1,22 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace YoutubeAutoFactory
 {
-    public class Program
+    internal class Program
     {
-        //public static async Task Main(string[] args)
-        //{
-        //    // ✅ [1] config.json에서 API 키 로딩
-        //    string configText = File.ReadAllText("config.json");
-        //    var config = JsonConvert.DeserializeObject<Config>(configText);
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine("🟦 브루를 먼저 켜고, '새로 만들기' 버튼이 화면에 보이게 해주세요.");
+            Console.WriteLine("3초 뒤에 버튼 이미지를 찾아서 자동 클릭합니다...");
+            await Task.Delay(3000);  // 3초 대기
 
-        //    // ✅ [2] GPTService 생성자에 apiKey 전달
-        //    var gptService = new GPTService(config.OpenAIApiKey);
+            var service = new VrewImageClickService();
+            await service.ClickOnImage("영상 (Vrew 3.1.0)", @"Images\NewProject.png");
 
-        //    // ✅ [3] 주제 입력
-        //    Console.Write("📝 주제 입력: ");
-        //    string topic = Console.ReadLine();
-
-        //    // ✅ [4] GPT 호출 및 결과 출력
-        //    var script = await gptService.GenerateScript(topic);
-        //    Console.WriteLine("\n🧾 생성된 대본:\n");
-        //    Console.WriteLine(script);
-        //}
-
-        //static async Task Main(string[] args)
-        //{
-        //    Console.WriteLine("🧪 [Mock 테스트 시작] 주제를 입력하세요:");
-        //    var topic = Console.ReadLine();
-
-        //    // 실제 GPT 대신 MockGPTService 사용
-        //    var gptService = new MockGPTService();
-        //    var script = await gptService.GenerateScript(topic ?? "기본 테스트 주제");
-
-        //    Console.WriteLine("\n🎬 생성된 대본:");
-        //    Console.WriteLine("----------------------------------");
-        //    Console.WriteLine(script);
-        //    Console.WriteLine("----------------------------------");
-        //}
-            static async Task Main(string[] args)
-            {
-                var vrewRunner = new VrewFlowRunner();
-                await vrewRunner.Run();
-
-                Console.WriteLine("⏹ 종료 - 아무 키나 누르세요.");
-                Console.ReadKey();
-            }
+            Console.WriteLine("✅ 클릭 시도 완료. 결과는 위 로그를 확인하세요.");
+            Console.WriteLine("⏹ 아무 키나 누르면 종료됩니다.");
+            Console.ReadKey();
+        }
     }
 }

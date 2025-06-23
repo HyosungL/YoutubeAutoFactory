@@ -1,29 +1,14 @@
-﻿// AppCore/VrewImageClickService.cs
-using OpenCvSharp;
+﻿using OpenCvSharp;
 using OpenCvSharp.Extensions;
-using System.Diagnostics;
+using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using System.Threading.Tasks;
 
 namespace YoutubeAutoFactory
 {
     public class VrewImageClickService
     {
-        [DllImport("user32.dll")]
-        private static extern bool PostMessage(IntPtr hWnd, uint msg, int wParam, int lParam);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-        private const uint WM_LBUTTONDOWN = 0x0201;
-        private const uint WM_LBUTTONUP = 0x0202;
-
-        public void LaunchVrew()
-        {
-            Process.Start(@"C:\Users\qqqq\AppData\Local\Programs\vrew\Vrew.exe");
-        }
-
         public async Task ClickOnImage(string windowTitle, string imagePath)
         {
             await Task.Delay(1000);
@@ -35,45 +20,76 @@ namespace YoutubeAutoFactory
                 return;
             }
 
-            Bitmap screenshot = CaptureWindow(hWnd);                           // 스크린샷 캡처
-            Mat source = BitmapConverter.ToMat(screenshot);                    // Bitmap → Mat 변환
-            Mat template = Cv2.ImRead(imagePath, ImreadModes.Color);           // 이미지 불러오기
-            Mat result = new Mat();                                            // 결과 저장용 Mat
+            Bitmap screenshot = CaptureWindow(hWnd);
+            Mat source = BitmapConverter.ToMat(screenshot);
+            Cv2.CvtColor(source, source, ColorConversionCodes.BGR2GRAY);
 
-            Cv2.MatchTemplate(source, template, result, TemplateMatchModes.CCoeffNormed); // 템플릿 매칭 실행
+            Mat template = Cv2.ImRead(imagePath, ImreadModes.Grayscale);
+            Mat result = new Mat();
 
+            Cv2.MatchTemplate(source, template, result, TemplateMatchModes.CCoeffNormed);
             Cv2.MinMaxLoc(result, out _, out double maxVal, out _, out OpenCvSharp.Point maxLoc);
 
             if (maxVal >= 0.95)
             {
-                var clickX = maxLoc.X + template.Width / 2;
-                var clickY = maxLoc.Y + template.Height / 2;
-                int lParam = (clickY << 16) | (clickX & 0xFFFF);
+                NativeMethods.RECT rect;
+                NativeMethods.GetWindowRect(hWnd, out rect);
+                int clickX = rect.Left + maxLoc.X + template.Width / 2;
+                int clickY = rect.Top + maxLoc.Y + template.Height / 2;
 
-                PostMessage(hWnd, WM_LBUTTONDOWN, 0x00000001, lParam);
-                PostMessage(hWnd, WM_LBUTTONUP, 0x00000001, lParam);
-                Console.WriteLine($"✅ 클릭 완료: {imagePath}");
+                Console.WriteLine($"✅ 버튼 클릭 좌표: ({clickX}, {clickY})");
+
+                NativeMethods.SetCursorPos(clickX, clickY);
+                NativeMethods.mouse_event(NativeMethods.LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+                NativeMethods.mouse_event(NativeMethods.LEFTUP, 0, 0, 0, UIntPtr.Zero);
             }
             else
             {
-                Console.WriteLine($"❌ 이미지 찾기 실패: {imagePath}");
+                Console.WriteLine("❌ 이미지와 유사도가 낮아 클릭하지 않았습니다.");
             }
         }
 
         private Bitmap CaptureWindow(IntPtr hWnd)
         {
-            Rectangle rect = new Rectangle();
-            _ = NativeMethods.GetWindowRect(hWnd, ref rect);
-            var bmp = new Bitmap(rect.Width - rect.X, rect.Height - rect.Y);
-            using var g = Graphics.FromImage(bmp);
-            g.CopyFromScreen(rect.X, rect.Y, 0, 0, bmp.Size);
+            NativeMethods.RECT rect;
+            NativeMethods.GetWindowRect(hWnd, out rect);
+            int width = rect.Right - rect.Left;
+            int height = rect.Bottom - rect.Top;
+
+            Bitmap bmp = new Bitmap(width, height);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.CopyFromScreen(rect.Left, rect.Top, 0, 0, new System.Drawing.Size(width, height), CopyPixelOperation.SourceCopy);
+            }
+
             return bmp;
         }
 
-        private static class NativeMethods
+        [DllImport("user32.dll")]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+    }
+
+    public static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int X, int Y);
+
+        [DllImport("user32.dll")]
+        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+
+        public const uint LEFTDOWN = 0x0002;
+        public const uint LEFTUP = 0x0004;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
         {
-            [DllImport("user32.dll")]
-            public static extern bool GetWindowRect(IntPtr hWnd, ref Rectangle rect);
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
         }
     }
 }

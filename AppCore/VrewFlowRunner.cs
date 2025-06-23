@@ -9,7 +9,8 @@ namespace YoutubeAutoFactory
 
         public async Task Run()
         {
-            vrewService.LaunchVrew();
+            await new VrewImageClickService().ClickOnImage("영상 (Vrew 3.1.0)", @"Images\NewProject.png");
+
             Console.WriteLine("📦 Vrew 실행 중...");
 
             await Task.Delay(5000);
